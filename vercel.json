@@ -1,7 +1,7 @@
 {
-  "buildCommand": "npm run build:client",
+  "buildCommand": "pnpm run build:client",
   "outputDirectory": "dist/spa",
-  "installCommand": "npm install",
+  "installCommand": "pnpm install",
   "framework": "vite",
   "rewrites": [
     { "source": "/api/deepfake/:path*", "destination": "/api/py_index.py" },

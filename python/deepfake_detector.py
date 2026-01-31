@@ -8,7 +8,7 @@ import pickle
 from datetime import datetime
 
 class DeepfakeDetector:
-    def __init__(self, model_path="models/deepfake_detector.pkl"):
+    def __init__(self, model_path="/tmp/deepfake_detector.pkl"):
         self.model_path = model_path
         self.model = RandomForestClassifier(n_estimators=100, random_state=42)
         self.training_data = []
@@ -161,19 +161,20 @@ class DeepfakeDetector:
     
     def save_training_data(self):
         """Save training data to disk"""
-        data_path = "models/training_data.pkl"
-        os.makedirs(os.path.dirname(data_path), exist_ok=True)
-        
-        with open(data_path, 'wb') as f:
-            pickle.dump({
-                'training_data': self.training_data,
-                'labels': self.labels,
-                'timestamp': datetime.now().isoformat()
-            }, f)
-    
+        data_path = "/tmp/training_data.pkl"
+        try:
+            with open(data_path, 'wb') as f:
+                pickle.dump({
+                    'training_data': self.training_data,
+                    'labels': self.labels,
+                    'timestamp': datetime.now().isoformat()
+                }, f)
+        except:
+            print("Could not save training data")
+
     def load_training_data(self):
         """Load training data from disk"""
-        data_path = "models/training_data.pkl"
+        data_path = "/tmp/training_data.pkl"
         if os.path.exists(data_path):
             try:
                 with open(data_path, 'rb') as f:
