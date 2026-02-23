@@ -4,20 +4,8 @@
   "installCommand": "pnpm install",
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/deepfake/:path*", "destination": "/api/py_index.py" },
-    { "source": "/api/:path*", "destination": "/api/index.ts" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
-  "functions": {
-    "api/py_index.py": {
-      "runtime": "python3.11",
-      "includeFiles": "python/**",
-      "maxDuration": 60
-    },
-    "api/index.ts": {
-      "maxDuration": 30
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
