@@ -13,6 +13,7 @@ import {
   MessageSquareWarning,
   PhoneOff,
   Sun,
+  FileWarning,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -118,6 +119,13 @@ export default function Features() {
           className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
         >
           <FeatureCard
+            icon={<FileWarning className="h-5 w-5" />}
+            title="Report a Scam"
+            desc="Help protect the community by reporting scams you've encountered with evidence and details."
+            href="/report-scam"
+            className="border-primary/20 bg-gradient-to-br from-primary/5 to-card/30"
+          />
+          <FeatureCard
             icon={<PhoneOff className="h-5 w-5" />}
             title="Scam call blocking"
             desc="Auto-detects and blocks known scam and spam callers in real time."
@@ -154,11 +162,10 @@ export default function Features() {
             href="/tips"
           />
           <FeatureCard
-            className="md:col-span-2 lg:col-span-3"
             icon={<MapPin className="h-5 w-5" />}
             title="Location‑based scam alerts"
-            desc="Get notified about active scams happening near you."
-            href="/alerts"
+            desc="View and report scams happening near you with interactive maps."
+            href="/scam-alerts"
           />
         </motion.div>
       </div>

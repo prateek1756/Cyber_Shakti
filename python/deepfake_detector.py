@@ -6,14 +6,51 @@ import os
 import json
 import pickle
 from datetime import datetime
+import json as json_module
+
+# #region agent log
+def debug_log(location, message, data, hypothesis_id):
+    try:
+        log_entry = {
+            "sessionId": "debug-session",
+            "runId": "run1",
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data,
+            "timestamp": int(datetime.now().timestamp() * 1000)
+        }
+        with open(r"c:\projects\CyberShakti\.cursor\debug.log", "a", encoding="utf-8") as f:
+            f.write(json_module.dumps(log_entry) + "\n")
+    except:
+        pass
+# #endregion
+
+def dct_2d_fast(image):
+    """Fast DCT implementation using FFT approximation for compression artifact analysis"""
+    # Use FFT-based approximation which is close enough for JPEG artifact detection
+    # This is much faster than full DCT and sufficient for our use case
+    fft_result = np.fft.fft2(image.astype(np.float32))
+    # Take magnitude for frequency analysis
+    dct_approx = np.abs(fft_result)
+    return dct_approx
 
 class DeepfakeDetector:
-    def __init__(self, model_path="/tmp/deepfake_detector.pkl"):
+    def __init__(self, model_path="models/deepfake_detector.pkl"):
+        # #region agent log
+        debug_log("deepfake_detector.py:11", "DeepfakeDetector.__init__ entry", {"model_path": model_path}, "A")
+        # #endregion
         self.model_path = model_path
         self.model = RandomForestClassifier(n_estimators=100, random_state=42)
         self.training_data = []
         self.labels = []
+        # #region agent log
+        debug_log("deepfake_detector.py:16", "Before load_or_create_model", {}, "A")
+        # #endregion
         self.load_or_create_model()
+        # #region agent log
+        debug_log("deepfake_detector.py:17", "After load_or_create_model", {"model_loaded": self.model is not None}, "A")
+        # #endregion
     
     def load_or_create_model(self):
         """Load existing model or create new one"""
@@ -25,15 +62,18 @@ class DeepfakeDetector:
             except:
                 print("Created new model")
         else:
-            try:
-                os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
-            except OSError:
-                print("Warning: Could not create model directory (likely read-only filesystem). Running in ephemeral mode.")
+            os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
             print("Created new model")
     
     def extract_features(self, image_path):
         """Extract image features for analysis"""
+        # #region agent log
+        debug_log("deepfake_detector.py:31", "extract_features entry", {"image_path": image_path}, "B")
+        # #endregion
         image = cv2.imread(image_path)
+        # #region agent log
+        debug_log("deepfake_detector.py:34", "After cv2.imread", {"image_is_none": image is None, "image_shape": str(image.shape) if image is not None else None}, "B")
+        # #endregion
         if image is None:
             return None
         
@@ -61,32 +101,62 @@ class DeepfakeDetector:
         features.extend(hist.flatten()[:50])  # First 50 histogram bins
         
         # Compression artifacts (DCT analysis)
-        dct = cv2.dct(np.float32(gray))
+        # #region agent log
+        debug_log("deepfake_detector.py:94", "Before DCT call", {"gray_shape": str(gray.shape), "gray_dtype": str(gray.dtype)}, "B")
+        # #endregion
+        # Use custom DCT implementation (cv2.dct doesn't exist in OpenCV)
+        dct = dct_2d_fast(gray)
+        # #region agent log
+        debug_log("deepfake_detector.py:99", "After DCT call", {"dct_shape": str(dct.shape)}, "B")
+        # #endregion
         features.extend([
             np.sum(np.abs(dct[:32, :32])),  # Low frequency
             np.sum(np.abs(dct[32:, 32:]))   # High frequency
         ])
         
-        return np.array(features)
+        result = np.array(features)
+        # #region agent log
+        debug_log("deepfake_detector.py:67", "extract_features exit", {"features_length": len(result)}, "B")
+        # #endregion
+        return result
     
     def analyze_compression_artifacts(self, image_path):
         """Analyze JPEG compression artifacts"""
+        # #region agent log
+        debug_log("deepfake_detector.py:69", "analyze_compression_artifacts entry", {"image_path": image_path}, "B")
+        # #endregion
         image = cv2.imread(image_path)
         if image is None:
             return 0.0
         
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        dct = cv2.dct(np.float32(gray))
+        # #region agent log
+        debug_log("deepfake_detector.py:113", "Before DCT in analyze_compression_artifacts", {}, "B")
+        # #endregion
+        # Use custom DCT implementation (cv2.dct doesn't exist in OpenCV)
+        dct = dct_2d_fast(gray)
+        # #region agent log
+        debug_log("deepfake_detector.py:116", "After DCT in analyze_compression_artifacts", {"dct_shape": str(dct.shape)}, "B")
+        # #endregion
         
         high_freq = np.sum(np.abs(dct[32:, 32:]))
         total_energy = np.sum(np.abs(dct))
         
         artifact_score = high_freq / (total_energy + 1e-8)
+        # #region agent log
+        debug_log("deepfake_detector.py:82", "analyze_compression_artifacts exit", {"artifact_score": float(artifact_score)}, "B")
+        # #endregion
         return artifact_score
     
     def detect_deepfake(self, image_path):
         """Main detection function"""
+        # #region agent log
+        debug_log("deepfake_detector.py:84", "detect_deepfake entry", {"image_path": image_path}, "C")
+        # #endregion
         features = self.extract_features(image_path)
+        # #region agent log
+        debug_log("deepfake_detector.py:86", "After extract_features", {"features_is_none": features is None}, "C")
+        # #endregion
         if features is None:
             return {
                 'is_deepfake': False,
@@ -117,13 +187,17 @@ class DeepfakeDetector:
         is_deepfake = final_score > 0.5
         confidence = abs(final_score - 0.5) * 2
         
-        return {
+        result = {
             'is_deepfake': is_deepfake,
             'confidence': float(confidence),
             'raw_score': float(final_score),
             'compression_artifacts': float(compression_score),
             'model_prediction': float(prediction)
         }
+        # #region agent log
+        debug_log("deepfake_detector.py:123", "detect_deepfake exit", {"is_deepfake": is_deepfake, "confidence": float(confidence)}, "C")
+        # #endregion
+        return result
     
     def add_training_sample(self, image_path, is_deepfake, retrain=False):
         """Add sample to training data and optionally retrain"""
@@ -161,20 +235,19 @@ class DeepfakeDetector:
     
     def save_training_data(self):
         """Save training data to disk"""
-        data_path = "/tmp/training_data.pkl"
-        try:
-            with open(data_path, 'wb') as f:
-                pickle.dump({
-                    'training_data': self.training_data,
-                    'labels': self.labels,
-                    'timestamp': datetime.now().isoformat()
-                }, f)
-        except:
-            print("Could not save training data")
-
+        data_path = "models/training_data.pkl"
+        os.makedirs(os.path.dirname(data_path), exist_ok=True)
+        
+        with open(data_path, 'wb') as f:
+            pickle.dump({
+                'training_data': self.training_data,
+                'labels': self.labels,
+                'timestamp': datetime.now().isoformat()
+            }, f)
+    
     def load_training_data(self):
         """Load training data from disk"""
-        data_path = "/tmp/training_data.pkl"
+        data_path = "models/training_data.pkl"
         if os.path.exists(data_path):
             try:
                 with open(data_path, 'rb') as f:

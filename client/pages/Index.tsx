@@ -145,14 +145,14 @@ export default function Index() {
             icon={<Link2 className="h-7 w-7" />}
             title="Smart Link Scanner"
             description="Lightning-fast phishing detection that analyzes threats before they reach you"
-            href="/scanner"
+            href="/phishing-scanner"
             gradient="from-green-500/20 to-teal-500/20"
           />
           <FeatureCard
             icon={<MessageSquareWarning className="h-7 w-7" />}
             title="Fraud Protection"
             description="Advanced NLP models that catch sophisticated scams and social engineering attacks"
-            href="/scanner"
+            href="/fraud-detection"
             gradient="from-orange-500/20 to-red-500/20"
           />
         </motion.div>

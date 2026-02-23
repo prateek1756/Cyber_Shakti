@@ -6,20 +6,25 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
-import Features from "./pages/Features";
-import Tips from "./pages/Tips";
-import Alerts from "./pages/Alerts";
-import PhishingScanner from "./pages/PhishingScanner";
-import FraudDetection from "./pages/FraudDetection";
-import ScamCallBlocking from "./pages/ScamCallBlocking";
-import FakeProfileVerification from "./pages/FakeProfileVerification";
-import DeepfakeDetection from "./pages/DeepfakeDetection";
 import PageIntro from "@/components/motion/PageIntro";
 import ScrollProgress from "@/components/motion/ScrollProgress";
+
+// Lazy load pages
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Features = lazy(() => import("./pages/Features"));
+const Tips = lazy(() => import("./pages/Tips"));
+const Alerts = lazy(() => import("./pages/Alerts"));
+const PhishingScanner = lazy(() => import("./pages/PhishingScanner"));
+const FraudDetection = lazy(() => import("./pages/FraudDetection"));
+const ScamCallBlocking = lazy(() => import("./pages/ScamCallBlocking"));
+const FakeProfileVerification = lazy(() => import("./pages/FakeProfileVerification"));
+const DeepfakeDetection = lazy(() => import("./pages/DeepfakeDetection"));
+const ScamAlerts = lazy(() => import("./pages/ScamAlerts"));
+const ReportScam = lazy(() => import("./pages/ReportScam"));
 
 const queryClient = new QueryClient();
 
@@ -34,18 +39,22 @@ const App = () => (
           <ScrollProgress />
           <SiteHeader />
           <main className="min-h-[calc(100vh-8rem)]">
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/phishing-scanner" element={<PhishingScanner />} />
-              <Route path="/fraud-detection" element={<FraudDetection />} />
-              <Route path="/scam-call-blocking" element={<ScamCallBlocking />} />
-              <Route path="/fake-profile-verification" element={<FakeProfileVerification />} />
-              <Route path="/deepfake-detection" element={<DeepfakeDetection />} />
-              <Route path="/tips" element={<Tips />} />
-              <Route path="/alerts" element={<Alerts />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <Suspense fallback={<div className="flex items-center justify-center min-h-[50vh]"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/features" element={<Features />} />
+                <Route path="/phishing-scanner" element={<PhishingScanner />} />
+                <Route path="/fraud-detection" element={<FraudDetection />} />
+                <Route path="/scam-call-blocking" element={<ScamCallBlocking />} />
+                <Route path="/fake-profile-verification" element={<FakeProfileVerification />} />
+                <Route path="/deepfake-detection" element={<DeepfakeDetection />} />
+                <Route path="/tips" element={<Tips />} />
+                <Route path="/alerts" element={<Alerts />} />
+                <Route path="/scam-alerts" element={<ScamAlerts />} />
+                <Route path="/report-scam" element={<ReportScam />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </main>
           <SiteFooter />
         </BrowserRouter>

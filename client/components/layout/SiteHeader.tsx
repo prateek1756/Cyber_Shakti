@@ -1,16 +1,21 @@
 import { Link } from "react-router-dom";
-import { Shield, PhoneOff, MapPin } from "lucide-react";
+import { Shield, PhoneOff, MapPin, FileWarning } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import MobileSidebar from "./MobileSidebar";
 
 export default function SiteHeader() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full border-b bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/50",
+        "sticky top-0 z-30 w-full border-b bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/50",
       )}
     >
       <div className="container flex h-16 items-center justify-between">
+        {/* Mobile Sidebar */}
+        <MobileSidebar />
+        
+        {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <div className="relative">
             <span className="absolute inset-0 rounded-xl bg-primary/30 blur-md" />
@@ -20,7 +25,15 @@ export default function SiteHeader() {
             CyberShakti
           </span>
         </Link>
+        
+        {/* Desktop Navigation */}
         <nav className="hidden items-center gap-6 md:flex">
+          <Link
+            to="/"
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            Home
+          </Link>
           <Link
             to="/features"
             className="text-sm text-muted-foreground hover:text-foreground"
@@ -46,19 +59,45 @@ export default function SiteHeader() {
             <MapPin className="h-4 w-4" /> Alerts
           </Link>
         </nav>
-        <div className="flex items-center gap-2">
+        
+        {/* Desktop Actions */}
+        <div className="hidden items-center gap-2 md:flex">
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="border-primary/20 text-primary hover:bg-primary/10"
+          >
+            <Link to="/report-scam" className="flex items-center">
+              <FileWarning className="mr-2 h-4 w-4" /> Report Scam
+            </Link>
+          </Button>
           <Button
             asChild
             size="sm"
             variant="secondary"
-            className="hidden sm:inline-flex"
+            className="hidden lg:inline-flex"
           >
             <Link to="/phishing-scanner" className="flex items-center">
-              <PhoneOff className="mr-2 h-4 w-4" /> Try Web Tools
+              <PhoneOff className="mr-2 h-4 w-4" /> Try Tools
             </Link>
           </Button>
           <Button asChild size="sm">
             <a href="#download">Get the App</a>
+          </Button>
+        </div>
+        
+        {/* Mobile Actions */}
+        <div className="flex items-center gap-2 md:hidden">
+          <Button asChild size="sm" variant="outline">
+            <Link to="/report-scam">
+              <FileWarning className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="secondary">
+            <Link to="/phishing-scanner">
+              Try Tools
+            </Link>
           </Button>
         </div>
       </div>

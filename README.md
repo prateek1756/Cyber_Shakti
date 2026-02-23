@@ -1,339 +1,265 @@
-# CyberShakti 🛡️
+# CyberShakti
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9+-blue.svg)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-18+-61dafb.svg)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-7+-646cff.svg)](https://vitejs.dev/)
-[![GitHub Stars](https://img.shields.io/github/stars/prateek1756/CyberGuard)](https://github.com/prateek1756/CyberGuard/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/prateek1756/CyberGuard)](https://github.com/prateek1756/CyberGuard/network/members)
+🔗 **Live Demo:** [https://cyber-shakti-alpha.vercel.app/](https://cyber-shakti-alpha.vercel.app/)
 
-> **Empower yourself against online threats with AI-powered cybersecurity tools.**
+A modern, production-ready web app to help users stay safe online. CyberShakti brings real-time protection concepts like scam call blocking, phishing link scanning, fraud message detection, fake profile verification, deepfake detection UI, daily safety tips, and location-based scam alerts.
 
-CyberShakti is a cutting-edge web application that leverages artificial intelligence to protect users from digital dangers. From detecting deepfakes to blocking phishing attempts, CyberShakti provides real-time security analysis and educational resources to help you stay safe in the digital world.
+## Features
 
-## 📋 Table of Contents
+- Scam call blocking (concept UI)
+- Phishing link scanner (heuristic risk scoring)
+- Fraud message detector (text heuristics)
+- Fake profile verification (concept)
+- Deepfake detection (upload UI preview)
+- Daily cyber safety tips
+- **Location-based scam alerts** (interactive map with MySQL backend)
+- Beautiful dark theme, responsive layout, tasteful animations (framer‑motion + Tailwind keyframes)
 
-- [✨ Key Highlights](#-key-highlights)
-- [🚀 Features](#-features)
-- [🛠️ Tech Stack](#️-tech-stack)
-- [📁 Project Structure](#-project-structure)
-- [🚀 Getting Started](#-getting-started)
-- [🧪 Testing & Quality](#-testing--quality)
-- [🌐 API Endpoints](#-api-endpoints)
-- [🎨 Customization](#-customization)
-- [🚀 Deployment](#-deployment)
-- [🗺️ Implementation Roadmap](#️-implementation-roadmap)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
-- [⚠️ Security Disclaimer](#️-security-disclaimer)
-- [🙏 Acknowledgments](#-acknowledgments)
-- [📞 Support](#-support)
-- [❓ FAQ](#-faq)
+> Important: The scanners are heuristic demos for educational purposes and are NOT a substitute for professional security tools.
 
-## ✨ Key Highlights
+## Tech Stack
 
-- 🔍 **AI-Powered Detection**: Advanced machine learning for scam and deepfake detection
-- 🛡️ **Real-Time Protection**: Instant analysis of links, messages, and media
-- 📱 **Mobile-First Design**: Responsive interface that works on all devices
-- 🎓 **Educational Content**: Daily safety tips and best practices
-- 🚀 **Fast & Secure**: Built with modern web technologies for optimal performance
-- 🌟 **Open Source**: Free and community-driven cybersecurity education
+- React 18 + TypeScript + Vite 7
+- React Router 6 (SPA)
+- TailwindCSS 3 + shadcn/ui primitives + Lucide icons
+- Framer Motion for animations
+- Express (integrated for API when needed)
+- Python Flask (AI backend for deepfake detection)
+- MySQL 8 (location-based scam alerts)
+- Leaflet.js (interactive maps)
+- Vitest for tests
 
-## 📸 Screenshots
-
-### Homepage
-![Homepage Screenshot](https://via.placeholder.com/800x400/0f172a/06b6d4?text=Homepage+Screenshot) <!-- Replace with actual screenshot -->
-
-### Deepfake Detection
-![Deepfake Detection Screenshot](https://via.placeholder.com/800x400/0f172a/06b6d4?text=Deepfake+Detection) <!-- Replace with actual screenshot -->
-
-### Phishing Scanner
-![Phishing Scanner Screenshot](https://via.placeholder.com/800x400/0f172a/06b6d4?text=Phishing+Scanner) <!-- Replace with actual screenshot -->
-
-## 🚀 Features
-
-### Core Security Tools
-- **Phishing Link Scanner**: Advanced heuristic risk scoring with URL analysis
-- **Fraud Message Detector**: Text-based scam detection using AI and pattern matching
-- **Fake Profile Verification**: Social media profile authenticity checking
-- **Deepfake Detection**: AI-powered media analysis with TensorFlow CNN models
-- **Scam Call Blocking**: Concept UI for call protection (mobile app planned)
-- **Location-based Scam Alerts**: Real-time geolocation-based warnings
-- **Daily Cyber Safety Tips**: Educational content and best practices
-
-### AI & Machine Learning
-- **Real-time AI Detection**: TensorFlow-based deepfake analysis
-- **Self-Training Models**: Continuous improvement through user feedback
-- **Facial Analysis**: MediaPipe landmark detection (300+ features)
-- **Compression Analysis**: JPEG artifact detection for manipulation clues
-- **Feedback Loop**: User corrections improve model accuracy over time
-
-### User Experience
-- **Beautiful Dark Theme**: Cyber-themed UI with teal/emerald accents
-- **Responsive Design**: Mobile-first approach with TailwindCSS
-- **Smooth Animations**: Framer Motion for engaging interactions
-- **Progressive Web App**: Installable on mobile devices
-- **Offline Support**: Core features work without internet
-
-> ⚠️ **Important**: CyberShakti's scanners are heuristic demos for educational purposes and are NOT substitutes for professional security tools. Always verify with trusted sources.
-
-## 🛠️ Tech Stack
-
-### Frontend
-- **Framework**: React 18 + TypeScript
-- **Build Tool**: Vite 7
-- **Routing**: React Router 6 (SPA)
-- **Styling**: TailwindCSS 3 + shadcn/ui components
-- **Icons**: Lucide React
-- **Animations**: Framer Motion
-- **Forms**: React Hook Form + Zod validation
-- **State Management**: TanStack Query + Zustand
-- **3D Graphics**: Three.js + React Three Fiber
-
-### Backend & APIs
-- **Runtime**: Node.js 18+
-- **Server**: Express.js 5
-- **API**: RESTful with Zod schemas
-- **AI Backend**: Python Flask/FastAPI
-- **ML Framework**: TensorFlow + PyTorch
-- **Database**: PostgreSQL (planned) + Redis cache
-- **File Storage**: AWS S3 / Cloudinary
-
-### Development & Testing
-- **Package Manager**: pnpm
-- **Testing**: Vitest + React Testing Library
-- **Type Checking**: TypeScript
-- **Linting**: ESLint + Prettier
-- **CI/CD**: GitHub Actions (planned)
-
-## 📁 Project Structure
+## Project Structure
 
 ```
-cyberguard/
-├── client/                    # React SPA
-│   ├── components/           # Reusable UI components
-│   │   ├── ui/              # shadcn/ui primitives
-│   │   ├── layout/          # SiteHeader, SiteFooter
-│   │   └── motion/          # Animation components
-│   ├── pages/               # Route components
-│   │   ├── Index.tsx        # Homepage with hero
-│   │   ├── Features.tsx     # Feature overview
-│   │   ├── Scanner.tsx      # Security scanners
-│   │   ├── DeepfakeDetection.tsx
-│   │   ├── Tips.tsx         # Safety tips
-│   │   └── Alerts.tsx       # Location alerts
-│   ├── hooks/               # Custom React hooks
-│   ├── lib/                 # Utilities and helpers
-│   └── global.css           # Global styles
-├── server/                   # Express server
-│   ├── routes/              # API route handlers
-│   └── index.ts             # Server entry point
-├── python/                   # AI/ML backend
-│   ├── api_server.py       # Flask API for AI models
-│   ├── deepfake_detector.py # Deepfake detection logic
-│   ├── models/              # ML model files
-│   └── requirements.txt     # Python dependencies
-├── shared/                   # Shared types/interfaces
-├── public/                   # Static assets
-├── netlify/                  # Serverless functions
-└── dist/                     # Build output
+client/        # React SPA
+  pages/       # Routes (Index = home, plus below)
+    Index.tsx  # Animated hero + feature highlights
+    Features.tsx
+    Scanner.tsx
+    Tips.tsx
+    Alerts.tsx
+  components/  # UI primitives & layout (SiteHeader, SiteFooter)
+server/        # Express server (Node.js backend)
+  python-bridge.ts  # Manages Flask server lifecycle
+  routes/      # API routes
+  config.ts    # Configuration management
+python/        # Flask server (Python AI backend)
+  api_server.py  # Deepfake detection API
+shared/        # Types shared between client/server
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
+
 - Node.js 18+ and pnpm
-- Python 3.8+ (for AI features)
-- Git
+- Python 3.8+ (for deepfake detection features)
+- MySQL 8.0+ (for location-based scam alerts)
 
-### Quick Setup
+### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/prateek1756/CyberGuard.git
-   cd cyberguard
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pnpm install
-   ```
-
-   If lockfile issues occur:
-   ```bash
-   pnpm install --no-frozen-lockfile
-   ```
-
-3. **Setup AI Backend (Optional)**
-   ```bash
-   pnpm run setup:ai
-   ```
-
-4. **Start development server**
-   ```bash
-   pnpm dev
-   ```
-
-   The app will be available at `http://localhost:8080`
-
-### Full Stack Development
-
-For complete development with AI features:
+1. Install Node.js dependencies
 
 ```bash
-# Terminal 1: AI Backend
-cd python
-python -m venv venv
-venv\Scripts\activate.bat  # Windows
-# or source venv/bin/activate  # macOS/Linux
-pip install -r requirements.txt
-python api_server.py
+pnpm install
+```
 
-# Terminal 2: Frontend
+If your environment enforces frozen lockfiles and install fails, run:
+
+```bash
+pnpm install --no-frozen-lockfile
+```
+
+2. Set up Python environment (for deepfake detection)
+
+```bash
+cd python
+pip install -r requirements.txt
+cd ..
+```
+
+> **Note:** If you don't have Python installed or don't need deepfake detection features, you can skip this step. The Express server will continue running without Flask integration, and deepfake endpoints will return 503 errors.
+
+3. Set up MySQL database (for location-based scam alerts)
+
+**Windows:**
+```bash
+setup-database.bat
+```
+
+**Linux/macOS:**
+```bash
+mysql -u root -p < database/schema.sql
+```
+
+See [SCAM_ALERTS_SETUP.md](SCAM_ALERTS_SETUP.md) for detailed setup instructions.
+
+> **Note:** If you don't have MySQL installed or don't need scam alerts, you can skip this step. The scam alerts feature will not work, but the rest of the app will function normally.
+
+4. Configure environment variables (optional)
+
+Copy `.env.example` to `.env` and customize if needed:
+
+```bash
+cp .env.example .env
+```
+
+Available Flask configuration options:
+- `FLASK_PORT` - Flask server port (default: 5001)
+- `FLASK_HOST` - Flask server host (default: 0.0.0.0)
+- `FLASK_HEALTH_TIMEOUT` - Health check timeout in ms (default: 10000)
+- `FLASK_HEALTH_INTERVAL` - Health check interval in ms (default: 500)
+- `FLASK_HEALTH_MAX_RETRIES` - Max health check retries (default: 20)
+- `FLASK_SHUTDOWN_TIMEOUT` - Shutdown timeout in ms (default: 5000)
+- `NODE_ENV` - Environment mode (development/production)
+
+MySQL database configuration:
+- `DB_HOST` - MySQL host (default: localhost)
+- `DB_PORT` - MySQL port (default: 3306)
+- `DB_USER` - MySQL username (default: root)
+- `DB_PASSWORD` - MySQL password (required)
+- `DB_NAME` - Database name (default: cybershakti)
+
+### Development
+
+Start the development server (starts both Express and Flask):
+
+```bash
 pnpm dev
 ```
 
+The app runs at http://localhost:8080
+
+- Frontend: Vite dev server with hot reload
+- Express API: http://localhost:8080/api
+- Deepfake API: http://localhost:8080/api/deepfake (proxied to Flask)
+
+The Flask server is automatically started and managed by the Express server. You'll see startup logs for both servers in the console.
+
 ### Production Build
 
-```bash
-# Build for production
-pnpm build
+Build for production:
 
-# Run production build locally
+```bash
+pnpm build
+```
+
+Run production build locally:
+
+```bash
 pnpm start
-
-# Start full stack (frontend + AI backend)
-pnpm run start:full
 ```
 
-## 🧪 Testing & Quality
+### Testing
+
+Run tests and typechecks:
 
 ```bash
-# Run tests
 pnpm test
-
-# Type checking
 pnpm typecheck
-
-# Format code
-pnpm format.fix
 ```
 
-## 🌐 API Endpoints
+## Routes
 
-### AI Deepfake Detection API
-- `POST /api/deepfake/analyze` - Analyze uploaded media for deepfakes
-- `POST /api/deepfake/feedback` - Submit user feedback for model training
-- `GET /api/deepfake/stats` - Get model performance statistics
-- `POST /api/deepfake/retrain` - Trigger model retraining
+- `/` — Homepage (animated hero, highlights)
+- `/features` — All features grid
+- `/scanner` — Phishing URL scanner + fraud message detector
+- `/tips` — Daily safety tips
+- `/alerts` — Location-based scam alerts (uses browser geolocation)
+- `/scam-alerts` — Interactive scam alert map with reporting (requires MySQL)
 
-### Security Scanner APIs
-- `POST /api/scanner/phishing` - Scan URL for phishing risks
-- `POST /api/scanner/fraud` - Analyze message for fraud patterns
-- `GET /api/alerts/location` - Get location-based scam alerts
+## Theming
 
-## 🎨 Customization
+Tailwind uses HSL CSS variables defined in `client/global.css`. Colors are tuned for a cyber theme (teal/emerald primary, aqua accents). Update variables there to change the brand.
 
-### Theming
-Colors are defined as CSS variables in `client/global.css`. The cyber theme uses:
-- Primary: Teal/Emerald (#0d9488)
-- Accent: Aqua/Cyan (#06b6d4)
-- Background: Dark slate (#0f172a)
+## Deployment
 
-### Adding New Features
-1. Create components in `client/components/`
-2. Add routes in `client/App.tsx`
-3. Implement API endpoints in `server/routes/`
-4. Update navigation in `client/components/layout/SiteHeader.tsx`
+You can deploy to:
 
-## 🚀 Deployment
+- Netlify
+- Vercel
 
-### Netlify (Recommended)
-```bash
+Typical steps:
+
+```
+pnpm install
 pnpm build
-# Deploy dist/ folder to Netlify
 ```
 
-### Vercel
-```bash
-pnpm build
-# Deploy dist/ folder to Vercel
-```
+Deploy the `dist/` output using your provider. Both providers can detect a Vite + SPA build automatically.
 
-### Docker (Future)
-```bash
-docker build -t cyberguard .
-docker run -p 8080:8080 cyberguard
-```
+## Troubleshooting
 
-## 🗺️ Implementation Roadmap
+### General Issues
 
-### Phase 1: Core Features ✅
-- Enhanced phishing scanner
-- Improved fraud detection
-- Dynamic safety tips
-- Basic location alerts
+- Lockfile mismatch in CI: `pnpm install --no-frozen-lockfile`
+- Port conflicts: update dev server port in Vite config or run with a different port env
+- Geolocation blocked: ensure site is served over HTTPS or allow permission in the browser
 
-### Phase 2: Advanced Features 🔄
-- Fake profile verification
-- Enhanced location system
-- User authentication
-- Admin dashboard
+### Python Backend Issues
 
-### Phase 3: AI & Mobile 📱
-- Mobile app development
-- Advanced deepfake detection
-- Call blocking system
-- Real-time analytics
+**Flask server fails to start:**
 
-### Phase 4: Scale & Polish 🚀
-- Performance optimization
-- Security hardening
-- Compliance features
-- Production deployment
+1. **Python not found:**
+   - Ensure Python 3.8+ is installed and in your system PATH
+   - On Windows: Use `python` command
+   - On Linux/macOS: Use `python3` command
+   - Verify: `python --version` or `python3 --version`
 
-## 🤝 Contributing
+2. **Missing Python dependencies:**
+   ```bash
+   cd python
+   pip install -r requirements.txt
+   ```
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+3. **Port already in use:**
+   - Check if another process is using port 5001
+   - Set a different port in `.env`: `FLASK_PORT=5002`
+   - On Linux/macOS: `lsof -i :5001`
+   - On Windows: `netstat -ano | findstr :5001`
 
-### Development Guidelines
-- Use TypeScript for all new code
-- Follow React best practices
-- Write tests for new features
-- Update documentation
-- Use conventional commits
+4. **Flask health check timeout:**
+   - Increase timeout in `.env`: `FLASK_HEALTH_TIMEOUT=20000`
+   - Check Flask logs in the console for startup errors
+   - Try manually starting Flask: `cd python && python api_server.py`
 
-## 📄 License
+**Deepfake endpoints return 503:**
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This means the Flask server is not running. Check the console logs for Flask startup errors. The Express server will continue running normally, but deepfake detection features will be unavailable.
 
-## ⚠️ Security Disclaimer
+**Running without Python:**
 
-CyberShakti is an educational demonstration project. The security tools provided are for learning purposes only and should not be relied upon for critical security decisions. Always consult professional security services and verify information with trusted sources.
+If you don't need deepfake detection features, you can run the app without Python installed. The Express server will start normally and log a warning about Flask being unavailable.
 
-## 🙏 Acknowledgments
+### MySQL Database Issues
 
-- [shadcn/ui](https://ui.shadcn.com/) for beautiful UI components
-- [TailwindCSS](https://tailwindcss.com/) for utility-first styling
-- [Framer Motion](https://www.framer.com/motion/) for animations
-- [TensorFlow](https://www.tensorflow.org/) for machine learning
-- [MediaPipe](https://mediapipe.dev/) for facial analysis
+**Database connection errors:**
 
-## 📞 Support
+1. **MySQL not running:**
+   - Windows: Check Services for "MySQL" service
+   - Linux: `sudo service mysql status`
+   - macOS: `brew services list`
 
-For questions or support:
-- Open an issue on GitHub
-- Check the [documentation](docs/) folder
-- Join our [Discord community](https://discord.gg/cyberguard)
+2. **Wrong credentials:**
+   - Verify `DB_PASSWORD` in `.env` matches your MySQL root password
+   - Test connection: `mysql -u root -p`
 
----
+3. **Database doesn't exist:**
+   - Run setup script: `setup-database.bat` (Windows) or `mysql -u root -p < database/schema.sql` (Linux/macOS)
+   - Verify: `mysql -u root -p -e "SHOW DATABASES;"`
 
-**Stay safe online! 🛡️**
-#   C y b e r S h a k t i 
- 
- 
+4. **Missing tables:**
+   - Re-run schema: `mysql -u root -p cybershakti < database/schema.sql`
+   - Verify: `mysql -u root -p -e "USE cybershakti; SHOW TABLES;"`
+
+**Scam alerts page not working:**
+
+- Check browser console for API errors
+- Verify database connection in server logs
+- Ensure location permissions are enabled in browser
+- See [SCAM_ALERTS_SETUP.md](SCAM_ALERTS_SETUP.md) for detailed troubleshooting
+
+## Security Note
+
+CyberShakti is an educational demo. Do not rely on its heuristics for critical decisions. Always verify links, messages, and files with trusted sources and tools.
