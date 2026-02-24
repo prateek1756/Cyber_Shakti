@@ -86,6 +86,7 @@ export async function startServer(): Promise<void> {
     healthCheckMaxRetries: flaskConfig.healthCheckMaxRetries,
     shutdownTimeout: flaskConfig.shutdownTimeout,
     isDevelopment: flaskConfig.isDevelopment,
+    externalUrl: flaskConfig.externalUrl,
   });
   
   // Start Flask server

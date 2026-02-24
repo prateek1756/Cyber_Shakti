@@ -25,6 +25,8 @@ export interface FlaskConfig {
   shutdownTimeout: number;
   /** Whether running in development mode */
   isDevelopment: boolean;
+  /** External Flask service URL (if provided, local process won't be started) */
+  externalUrl?: string;
 }
 
 /**
@@ -38,6 +40,7 @@ const DEFAULT_CONFIG: FlaskConfig = {
   healthCheckMaxRetries: 20,
   shutdownTimeout: 5000,
   isDevelopment: process.env.NODE_ENV !== 'production',
+  externalUrl: process.env.PYTHON_SERVICE_URL,
 };
 
 /**
@@ -133,6 +136,7 @@ export function loadFlaskConfig(): FlaskConfig {
       'FLASK_SHUTDOWN_TIMEOUT'
     ),
     isDevelopment: process.env.NODE_ENV !== 'production',
+    externalUrl: process.env.PYTHON_SERVICE_URL || DEFAULT_CONFIG.externalUrl,
   };
 
   // Log configuration in development mode
@@ -145,6 +149,7 @@ export function loadFlaskConfig(): FlaskConfig {
       healthCheckMaxRetries: config.healthCheckMaxRetries,
       shutdownTimeout: `${config.shutdownTimeout}ms`,
       isDevelopment: config.isDevelopment,
+      externalUrl: config.externalUrl ? 'configured' : 'none',
     });
   }
 

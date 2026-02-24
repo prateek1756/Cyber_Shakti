@@ -32,6 +32,8 @@ export interface PythonBridgeConfig {
   shutdownTimeout: number;
   /** Whether running in development mode (enables verbose logging) */
   isDevelopment: boolean;
+  /** External Flask service URL (if provided, local process won't be started) */
+  externalUrl?: string;
 }
 
 /**
@@ -81,6 +83,7 @@ export class PythonBridge {
       healthCheckMaxRetries: config.healthCheckMaxRetries || 20,
       shutdownTimeout: config.shutdownTimeout || 5000,
       isDevelopment: config.isDevelopment !== undefined ? config.isDevelopment : process.env.NODE_ENV !== 'production',
+      externalUrl: config.externalUrl,
     };
 
     // Initialize state
@@ -105,6 +108,12 @@ export class PythonBridge {
    * @throws Error if Flask fails to start (in strict mode)
    */
   async start(): Promise<void> {
+    if (this.config.externalUrl) {
+      console.log(`[Python] Using external Flask service at: ${this.config.externalUrl}`);
+      this.state.isReady = true;
+      return;
+    }
+
     console.log('[Python] Starting Flask server integration...');
     
     // Step 1: Validate environment
@@ -157,6 +166,9 @@ export class PythonBridge {
    * @returns true if Flask is ready, false otherwise
    */
   isFlaskReady(): boolean {
+    if (this.config.externalUrl) {
+      return this.state.isReady;
+    }
     return this.state.isReady && this.state.process !== null && this.state.process.exitCode === null;
   }
 
@@ -166,6 +178,9 @@ export class PythonBridge {
    * @returns Flask server URL (e.g., "http://localhost:5001")
    */
   getFlaskUrl(): string {
+    if (this.config.externalUrl) {
+      return this.config.externalUrl;
+    }
     return `http://localhost:${this.config.port}`;
   }
 
