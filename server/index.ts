@@ -7,6 +7,8 @@ import scannerRoutes from "./routes/scanner";
 import { PythonBridge } from "./python-bridge";
 import { createDeepfakeProxy } from "./routes/deepfake-proxy";
 import { loadFlaskConfig } from "./config";
+import { runMigrations, createMigrationsTable } from "./db/migrations";
+import { testConnection } from "./db/connection";
 
 export function createServer(pythonBridge?: PythonBridge) {
   const app = express();
@@ -72,6 +74,19 @@ export async function startServer(): Promise<void> {
   console.log('='.repeat(60));
   console.log('Starting CyberGuard Backend Server');
   console.log('='.repeat(60));
+  
+  // Test database connection and run migrations
+  console.log('[Server] Testing database connection...');
+  const dbConnected = await testConnection();
+  
+  if (dbConnected) {
+    console.log('[Server] Running database migrations...');
+    await runMigrations();
+    await createMigrationsTable();
+  } else {
+    console.warn('[Server] ⚠️  Database connection failed');
+    console.warn('[Server] Service will start, but database features may not work');
+  }
   
   // Load Flask configuration
   const flaskConfig = loadFlaskConfig();
