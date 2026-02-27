@@ -3,7 +3,14 @@
  * 
  * This module manages the Python Flask server as a child process of the Node.js
  * Express server. It handles process lifecycle management, health monitoring,
- * log forwarding, and graceful shutdown.
+ * log forwarding, and graceful shutdown with enhanced error handling.
+ * 
+ * Features:
+ * - Automatic retry with exponential backoff
+ * - Detailed error categorization and reporting
+ * - Process crash detection and recovery
+ * - Dependency validation
+ * - Network error handling
  * 
  * Validates: Requirements 1.2, 2.5
  */
@@ -11,6 +18,35 @@
 import { ChildProcess, execSync, spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { resolve } from 'path';
+
+/**
+ * Error types for better error handling
+ */
+export enum PythonBridgeErrorType {
+  PYTHON_NOT_FOUND = 'PYTHON_NOT_FOUND',
+  SCRIPT_NOT_FOUND = 'SCRIPT_NOT_FOUND',
+  DEPENDENCY_ERROR = 'DEPENDENCY_ERROR',
+  PORT_IN_USE = 'PORT_IN_USE',
+  PROCESS_SPAWN_ERROR = 'PROCESS_SPAWN_ERROR',
+  PROCESS_CRASH = 'PROCESS_CRASH',
+  HEALTH_CHECK_TIMEOUT = 'HEALTH_CHECK_TIMEOUT',
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  UNKNOWN_ERROR = 'UNKNOWN_ERROR',
+}
+
+/**
+ * Custom error class for Python bridge errors
+ */
+export class PythonBridgeError extends Error {
+  constructor(
+    public type: PythonBridgeErrorType,
+    message: string,
+    public details?: any
+  ) {
+    super(message);
+    this.name = 'PythonBridgeError';
+  }
+}
 
 /**
  * Configuration interface for PythonBridge
@@ -34,6 +70,12 @@ export interface PythonBridgeConfig {
   isDevelopment: boolean;
   /** External Flask service URL (if provided, local process won't be started) */
   externalUrl?: string;
+  /** Enable automatic restart on crash (default: true in development) */
+  autoRestart?: boolean;
+  /** Maximum number of restart attempts (default: 3) */
+  maxRestartAttempts?: number;
+  /** Delay between restart attempts in milliseconds (default: 2000) */
+  restartDelay?: number;
 }
 
 /**
@@ -48,6 +90,14 @@ export interface BridgeState {
   startTime: number | null;
   /** Timestamp of the last successful health check */
   lastHealthCheck: number | null;
+  /** Number of restart attempts made */
+  restartAttempts: number;
+  /** Last error encountered */
+  lastError: PythonBridgeError | null;
+  /** Whether the bridge is currently restarting */
+  isRestarting: boolean;
+  /** Accumulated stderr output for error diagnosis */
+  stderrBuffer: string[];
 }
 
 /**
@@ -84,6 +134,9 @@ export class PythonBridge {
       shutdownTimeout: config.shutdownTimeout || 5000,
       isDevelopment: config.isDevelopment !== undefined ? config.isDevelopment : process.env.NODE_ENV !== 'production',
       externalUrl: config.externalUrl,
+      autoRestart: config.autoRestart !== undefined ? config.autoRestart : config.isDevelopment !== false,
+      maxRestartAttempts: config.maxRestartAttempts || 3,
+      restartDelay: config.restartDelay || 2000,
     };
 
     // Initialize state
@@ -92,6 +145,10 @@ export class PythonBridge {
       isReady: false,
       startTime: null,
       lastHealthCheck: null,
+      restartAttempts: 0,
+      lastError: null,
+      isRestarting: false,
+      stderrBuffer: [],
     };
   }
 
@@ -116,48 +173,162 @@ export class PythonBridge {
 
     console.log('[Python] Starting Flask server integration...');
     
-    // Step 1: Validate environment
-    const validation = this.validateEnvironment();
-    
-    if (!validation.valid) {
-      // Environment validation failed
-      console.error(`[Python] ❌ ${validation.error}`);
-      console.error('[Python] Express server will continue running without Flask integration');
-      console.error('[Python] Deepfake endpoints will return 503 Service Unavailable');
-      return; // Don't throw - gracefully degrade
-    }
-    
-    console.log('[Python] ✓ Environment validation passed');
-    
     try {
+      // Step 1: Validate environment
+      await this.validateEnvironmentWithRetry();
+      
+      console.log('[Python] ✓ Environment validation passed');
+      
       // Step 2: Spawn Flask process
       const proc = this.spawnFlaskProcess();
       
       // Step 3: Set up process handlers
       this.setupProcessHandlers(proc);
       
-      // Step 4: Wait for health check
-      await this.waitForHealth();
+      // Step 4: Wait for health check with retry
+      await this.waitForHealthWithRetry();
       
       // Step 5: Log final status
       if (this.state.isReady) {
         console.log('[Python] ✓ Flask server started successfully');
         console.log(`[Python] Flask URL: ${this.getFlaskUrl()}`);
+        this.state.restartAttempts = 0; // Reset restart counter on success
       } else {
-        console.error('[Python] ❌ Flask server failed to become ready');
-        console.error('[Python] Express server will continue running without Flask integration');
+        throw new PythonBridgeError(
+          PythonBridgeErrorType.HEALTH_CHECK_TIMEOUT,
+          'Flask server failed to become ready after all retries'
+        );
       }
       
     } catch (error) {
-      // Unexpected error during startup
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error(`[Python] ❌ Failed to start Flask server: ${errorMessage}`);
-      console.error('[Python] Express server will continue running without Flask integration');
-      
-      // Clean up state
-      this.state.isReady = false;
-      this.state.process = null;
+      // Handle startup errors
+      this.handleStartupError(error);
     }
+  }
+
+  /**
+   * Handle startup errors with detailed logging and recovery suggestions
+   * @private
+   */
+  private handleStartupError(error: any): void {
+    const bridgeError = error instanceof PythonBridgeError 
+      ? error 
+      : new PythonBridgeError(
+          PythonBridgeErrorType.UNKNOWN_ERROR,
+          error instanceof Error ? error.message : 'Unknown error',
+          error
+        );
+
+    this.state.lastError = bridgeError;
+    this.state.isReady = false;
+    this.state.process = null;
+
+    console.error(`[Python] ❌ Failed to start Flask server: ${bridgeError.message}`);
+    console.error(`[Python] Error type: ${bridgeError.type}`);
+
+    // Provide specific troubleshooting based on error type
+    switch (bridgeError.type) {
+      case PythonBridgeErrorType.PYTHON_NOT_FOUND:
+        console.error('[Python] Troubleshooting:');
+        console.error('[Python]   1. Install Python 3.8+ from https://www.python.org/downloads/');
+        console.error('[Python]   2. Ensure Python is added to your system PATH');
+        console.error('[Python]   3. Restart your terminal/IDE after installation');
+        console.error('[Python]   4. Verify installation: python --version or python3 --version');
+        break;
+
+      case PythonBridgeErrorType.SCRIPT_NOT_FOUND:
+        console.error('[Python] Troubleshooting:');
+        console.error('[Python]   1. Ensure python/api_server.py exists in your project');
+        console.error('[Python]   2. Check file permissions');
+        console.error('[Python]   3. Verify project structure is intact');
+        break;
+
+      case PythonBridgeErrorType.DEPENDENCY_ERROR:
+        console.error('[Python] Troubleshooting:');
+        console.error('[Python]   1. Install Python dependencies:');
+        console.error('[Python]      cd python && pip install -r requirements.txt');
+        console.error('[Python]   2. If using virtual environment, activate it first');
+        console.error('[Python]   3. Check for conflicting package versions');
+        console.error('[Python] Recent errors from Flask:');
+        this.state.stderrBuffer.slice(-5).forEach(line => {
+          console.error(`[Python]   ${line}`);
+        });
+        break;
+
+      case PythonBridgeErrorType.PORT_IN_USE:
+        console.error('[Python] Troubleshooting:');
+        console.error(`[Python]   1. Port ${this.config.port} is already in use`);
+        console.error('[Python]   2. Stop the process using this port:');
+        console.error(`[Python]      Windows: netstat -ano | findstr :${this.config.port}`);
+        console.error(`[Python]      Linux/Mac: lsof -i :${this.config.port}`);
+        console.error('[Python]   3. Or change FLASK_PORT in your .env file');
+        break;
+
+      case PythonBridgeErrorType.HEALTH_CHECK_TIMEOUT:
+        console.error('[Python] Troubleshooting:');
+        console.error('[Python]   1. Flask server started but health check failed');
+        console.error('[Python]   2. Check Flask logs above for startup errors');
+        console.error('[Python]   3. Try manually starting Flask:');
+        console.error('[Python]      cd python && python api_server.py');
+        console.error('[Python]   4. Verify Flask dependencies are installed');
+        if (this.state.stderrBuffer.length > 0) {
+          console.error('[Python] Recent Flask errors:');
+          this.state.stderrBuffer.slice(-5).forEach(line => {
+            console.error(`[Python]   ${line}`);
+          });
+        }
+        break;
+
+      case PythonBridgeErrorType.PROCESS_CRASH:
+        console.error('[Python] Troubleshooting:');
+        console.error('[Python]   1. Flask process crashed during startup');
+        console.error('[Python]   2. Check error messages above');
+        console.error('[Python]   3. Verify Python code syntax');
+        console.error('[Python]   4. Check for missing dependencies');
+        break;
+
+      default:
+        console.error('[Python] Troubleshooting:');
+        console.error('[Python]   1. Check the error messages above');
+        console.error('[Python]   2. Try restarting the development server');
+        console.error('[Python]   3. Check GitHub issues for similar problems');
+    }
+
+    console.error('[Python] Express server will continue running without Flask integration');
+    console.error('[Python] Deepfake endpoints will return 503 Service Unavailable');
+  }
+
+  /**
+   * Validate environment with retry logic
+   * @private
+   */
+  private async validateEnvironmentWithRetry(): Promise<void> {
+    const maxAttempts = 2;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const validation = this.validateEnvironment();
+        
+        if (!validation.valid) {
+          throw new PythonBridgeError(
+            validation.errorType || PythonBridgeErrorType.UNKNOWN_ERROR,
+            validation.error || 'Environment validation failed'
+          );
+        }
+
+        return; // Success
+      } catch (error) {
+        lastError = error as Error;
+        
+        if (attempt < maxAttempts) {
+          console.log(`[Python] Environment validation attempt ${attempt} failed, retrying...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+
+    throw lastError;
   }
 
   /**
@@ -374,11 +545,12 @@ export class PythonBridge {
    * This method checks:
    * 1. Python is available in the system PATH
    * 2. The Flask server script exists
+   * 3. Python dependencies are installed
    * 
    * @returns Validation result with error messages if any
    * @private
    */
-  private validateEnvironment(): { valid: boolean; error?: string } {
+  private validateEnvironment(): { valid: boolean; error?: string; errorType?: PythonBridgeErrorType } {
     // Check 1: Verify Python is available
     try {
       this.detectPythonCommand();
@@ -387,6 +559,7 @@ export class PythonBridge {
       return {
         valid: false,
         error: `Python environment validation failed: ${errorMessage}`,
+        errorType: PythonBridgeErrorType.PYTHON_NOT_FOUND,
       };
     }
 
@@ -398,6 +571,20 @@ export class PythonBridge {
         error: `Flask server script not found at: ${scriptPath}. ` +
                'Please ensure the Python backend is properly set up. ' +
                'Expected file: python/api_server.py',
+        errorType: PythonBridgeErrorType.SCRIPT_NOT_FOUND,
+      };
+    }
+
+    // Check 3: Verify Python dependencies (basic check)
+    try {
+      const pythonCommand = this.detectPythonCommand();
+      const checkScript = `${pythonCommand} -c "import flask; import flask_cors"`;
+      execSync(checkScript, { stdio: 'pipe', encoding: 'utf-8' });
+    } catch (error) {
+      return {
+        valid: false,
+        error: 'Python dependencies not installed. Run: cd python && pip install -r requirements.txt',
+        errorType: PythonBridgeErrorType.DEPENDENCY_ERROR,
       };
     }
 
@@ -444,8 +631,19 @@ export class PythonBridge {
       proc.stderr.on('data', (data: Buffer) => {
         const output = data.toString().trim();
         if (output) {
+          // Store in buffer for error diagnosis
+          this.state.stderrBuffer.push(output);
+          
+          // Keep buffer size manageable (last 50 lines)
+          if (this.state.stderrBuffer.length > 50) {
+            this.state.stderrBuffer.shift();
+          }
+
           // Always log stderr output with [Python] prefix
           console.error(`[Python] ${output}`);
+
+          // Detect specific error patterns
+          this.detectErrorPatterns(output);
         }
       });
     }
@@ -460,39 +658,74 @@ export class PythonBridge {
       console.error(`[Python] Process error: ${error.message}`);
       console.error('[Python] Failed to spawn Flask server process');
       
-      // Update state
+      const bridgeError = new PythonBridgeError(
+        PythonBridgeErrorType.PROCESS_SPAWN_ERROR,
+        `Failed to spawn Flask process: ${error.message}`,
+        error
+      );
+
+      this.state.lastError = bridgeError;
       this.state.isReady = false;
       this.state.process = null;
     });
   }
 
   /**
-   * Wait for the Flask server to become healthy
+   * Detect specific error patterns in stderr output
+   * @private
+   */
+  private detectErrorPatterns(output: string): void {
+    const lowerOutput = output.toLowerCase();
+
+    // Port in use error
+    if (lowerOutput.includes('address already in use') || 
+        lowerOutput.includes('port is already in use')) {
+      this.state.lastError = new PythonBridgeError(
+        PythonBridgeErrorType.PORT_IN_USE,
+        `Port ${this.config.port} is already in use`,
+        { port: this.config.port }
+      );
+    }
+
+    // Import/dependency errors
+    if (lowerOutput.includes('modulenotfounderror') || 
+        lowerOutput.includes('importerror') ||
+        lowerOutput.includes('no module named')) {
+      this.state.lastError = new PythonBridgeError(
+        PythonBridgeErrorType.DEPENDENCY_ERROR,
+        'Python dependency missing',
+        { stderr: output }
+      );
+    }
+  }
+
+  /**
+   * Wait for the Flask server to become healthy with retry logic
    * 
    * This method:
    * 1. Performs health checks at configured intervals
-   * 2. Retries up to the configured maximum attempts
+   * 2. Uses exponential backoff for retries
    * 3. Updates the isReady state on success
    * 4. Logs warnings with troubleshooting steps on failure
    * 
    * @private
    */
-  private async waitForHealth(): Promise<void> {
+  private async waitForHealthWithRetry(): Promise<void> {
     console.log(`[Python] Waiting for Flask server to become ready...`);
     console.log(`[Python] Health check URL: http://localhost:${this.config.port}/api/deepfake/stats`);
     console.log(`[Python] Max retries: ${this.config.healthCheckMaxRetries}, Interval: ${this.config.healthCheckInterval}ms`);
     
     let attempts = 0;
     const maxAttempts = this.config.healthCheckMaxRetries;
-    const interval = this.config.healthCheckInterval;
+    let currentInterval = this.config.healthCheckInterval;
     
     while (attempts < maxAttempts) {
       attempts++;
       
       // Perform health check
-      const isHealthy = await this.performHealthCheck();
+      const healthResult = await this.performHealthCheck();
       
-      if (isHealthy) {
+      if (healthResult.healthy) {
         // Flask is ready!
         this.state.isReady = true;
         const elapsedTime = this.state.startTime ? Date.now() - this.state.startTime : 0;
@@ -502,31 +735,33 @@ export class PythonBridge {
       
       // Check if process has exited
       if (!this.state.process || this.state.process.exitCode !== null) {
-        console.error('[Python] Flask process exited during health check');
-        console.error('[Python] Health check failed: Flask server is not running');
-        return;
+        throw new PythonBridgeError(
+          PythonBridgeErrorType.PROCESS_CRASH,
+          'Flask process exited during health check',
+          { exitCode: this.state.process?.exitCode }
+        );
       }
       
       // Log progress periodically
       if (attempts % 5 === 0 || attempts === 1) {
-        console.log(`[Python] Health check attempt ${attempts}/${maxAttempts}...`);
+        console.log(`[Python] Health check attempt ${attempts}/${maxAttempts}... (${healthResult.error || 'waiting'})`);
       }
       
-      // Wait before next attempt
+      // Wait before next attempt with exponential backoff
       if (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, interval));
+        await new Promise(resolve => setTimeout(resolve, currentInterval));
+        
+        // Exponential backoff (cap at 2 seconds)
+        currentInterval = Math.min(currentInterval * 1.2, 2000);
       }
     }
     
     // Health check failed after all retries
-    console.warn('[Python] ⚠️  Flask server health check failed after maximum retries');
-    console.warn('[Python] The Flask server may not be ready or may have failed to start');
-    console.warn('[Python] Troubleshooting steps:');
-    console.warn('[Python]   1. Check the Flask server logs above for errors');
-    console.warn('[Python]   2. Ensure Python dependencies are installed: cd python && pip install -r requirements.txt');
-    console.warn('[Python]   3. Verify port ' + this.config.port + ' is not in use by another process');
-    console.warn('[Python]   4. Try manually starting Flask: cd python && python api_server.py');
-    console.warn('[Python] Express server will continue running, but deepfake endpoints will return 503 errors');
+    throw new PythonBridgeError(
+      PythonBridgeErrorType.HEALTH_CHECK_TIMEOUT,
+      `Flask server health check failed after ${maxAttempts} attempts`,
+      { stderrBuffer: this.state.stderrBuffer }
+    );
   }
 
   /**
@@ -535,10 +770,10 @@ export class PythonBridge {
    * This method makes an HTTP GET request to the Flask stats endpoint
    * and returns whether the server is responsive.
    * 
-   * @returns true if health check succeeds, false otherwise
+   * @returns Health check result with error details
    * @private
    */
-  private async performHealthCheck(): Promise<boolean> {
+  private async performHealthCheck(): Promise<{ healthy: boolean; error?: string }> {
     try {
       const url = `http://localhost:${this.config.port}/api/deepfake/stats`;
       
@@ -561,15 +796,25 @@ export class PythonBridge {
         // Verify response has expected structure
         if (typeof data === 'object' && data !== null) {
           this.state.lastHealthCheck = Date.now();
-          return true;
+          return { healthy: true };
         }
       }
       
-      return false;
+      return { healthy: false, error: `HTTP ${response.status}` };
     } catch (error) {
       // Health check failed (network error, timeout, etc.)
-      // This is expected during startup, so we don't log errors here
-      return false;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Categorize the error
+      if (errorMessage.includes('ECONNREFUSED')) {
+        return { healthy: false, error: 'Connection refused' };
+      } else if (errorMessage.includes('ETIMEDOUT') || errorMessage.includes('aborted')) {
+        return { healthy: false, error: 'Timeout' };
+      } else if (errorMessage.includes('ENOTFOUND')) {
+        return { healthy: false, error: 'Host not found' };
+      }
+      
+      return { healthy: false, error: errorMessage };
     }
   }
 
@@ -580,6 +825,7 @@ export class PythonBridge {
    * 1. Logs exit code and signal information
    * 2. Updates bridge state
    * 3. Provides troubleshooting guidance
+   * 4. Attempts automatic restart if configured
    * 
    * @param code - Exit code (null if killed by signal)
    * @param signal - Signal that caused exit (null if exited normally)
@@ -587,6 +833,7 @@ export class PythonBridge {
    */
   private handleProcessExit(code: number | null, signal: string | null): void {
     // Update state immediately
+    const wasReady = this.state.isReady;
     this.state.isReady = false;
     this.state.process = null;
 
@@ -594,9 +841,15 @@ export class PythonBridge {
     if (signal) {
       // Process was killed by a signal
       console.log(`[Python] Flask server process terminated by signal: ${signal}`);
+      
+      // Don't restart if manually killed
+      if (signal === 'SIGTERM' || signal === 'SIGINT') {
+        return;
+      }
     } else if (code === 0) {
       // Normal exit
       console.log('[Python] Flask server process exited normally');
+      return; // Don't restart on normal exit
     } else if (code !== null) {
       // Abnormal exit with error code
       console.error(`[Python] Flask server process exited with code: ${code}`);
@@ -628,5 +881,84 @@ export class PythonBridge {
       const runtimeSeconds = (runtime / 1000).toFixed(2);
       console.log(`[Python] Flask server ran for ${runtimeSeconds} seconds`);
     }
+
+    // Attempt automatic restart if configured and was previously ready
+    if (this.config.autoRestart && wasReady && !this.state.isRestarting) {
+      this.attemptRestart(code, signal);
+    }
+  }
+
+  /**
+   * Attempt to restart the Flask server automatically
+   * @private
+   */
+  private async attemptRestart(exitCode: number | null, signal: string | null): Promise<void> {
+    if (this.state.restartAttempts >= (this.config.maxRestartAttempts || 3)) {
+      console.error('[Python] ❌ Maximum restart attempts reached, giving up');
+      console.error('[Python] Please fix the issue and restart the development server manually');
+      return;
+    }
+
+    this.state.restartAttempts++;
+    this.state.isRestarting = true;
+
+    console.log(`[Python] 🔄 Attempting automatic restart (${this.state.restartAttempts}/${this.config.maxRestartAttempts})...`);
+    
+    // Wait before restarting (exponential backoff)
+    const delay = (this.config.restartDelay || 2000) * this.state.restartAttempts;
+    console.log(`[Python] Waiting ${delay}ms before restart...`);
+    await new Promise(resolve => setTimeout(resolve, delay));
+
+    try {
+      // Clear error buffer
+      this.state.stderrBuffer = [];
+      
+      // Attempt to start again
+      await this.start();
+      
+      if (this.state.isReady) {
+        console.log('[Python] ✓ Flask server restarted successfully');
+        this.state.restartAttempts = 0; // Reset counter on success
+      }
+    } catch (error) {
+      console.error('[Python] ❌ Restart attempt failed');
+      
+      // Try again if we haven't hit the limit
+      if (this.state.restartAttempts < (this.config.maxRestartAttempts || 3)) {
+        await this.attemptRestart(exitCode, signal);
+      }
+    } finally {
+      this.state.isRestarting = false;
+    }
+  }
+
+  /**
+   * Get the last error encountered by the bridge
+   * @returns The last error or null if no error
+   */
+  getLastError(): PythonBridgeError | null {
+    return this.state.lastError;
+  }
+
+  /**
+   * Get detailed status information about the bridge
+   * @returns Status object with detailed information
+   */
+  getStatus(): {
+    isReady: boolean;
+    isRestarting: boolean;
+    restartAttempts: number;
+    lastError: PythonBridgeError | null;
+    uptime: number | null;
+    lastHealthCheck: number | null;
+  } {
+    return {
+      isReady: this.state.isReady,
+      isRestarting: this.state.isRestarting,
+      restartAttempts: this.state.restartAttempts,
+      lastError: this.state.lastError,
+      uptime: this.state.startTime ? Date.now() - this.state.startTime : null,
+      lastHealthCheck: this.state.lastHealthCheck,
+    };
   }
 }

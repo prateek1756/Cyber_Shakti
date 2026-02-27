@@ -36,5 +36,10 @@ python/uploads/*.jpg
 python/uploads/*.png
 python/uploads/temp_*
 
+# Python
+__pycache__/
+*.pyc
+venv/
+
 .config/
 !.env
