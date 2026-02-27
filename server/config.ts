@@ -40,7 +40,7 @@ const DEFAULT_CONFIG: FlaskConfig = {
   healthCheckMaxRetries: 20,
   shutdownTimeout: 5000,
   isDevelopment: process.env.NODE_ENV !== 'production',
-  externalUrl: process.env.PYTHON_SERVICE_URL,
+  externalUrl: process.env.PYTHON_SERVICE_URL || 'https://cyber-shakti-1.onrender.com',
 };
 
 /**
